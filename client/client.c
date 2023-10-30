@@ -5,9 +5,10 @@
 /*  DATE         :  Sep 01, 2020                                    */
 /*                                                                  */
 
-#include "../icslab2_net.h"
 #include <sys/socket.h>
 #include <time.h>
+
+#include "../icslab2_net.h"
 
 int main(int argc, char **argv) {
   char *server_ipaddr_str = "127.0.0.1"; /* サーバIPアドレス（文字列） */
@@ -16,7 +17,7 @@ int main(int argc, char **argv) {
 
   int sock;                      /* ソケットディスクリプタ */
   struct sockaddr_in serverAddr; /* サーバ＝相手用のアドレス構造体 */
-  char buf[BUF_LEN + 1];             /* 受信バッファ */
+  char buf[BUF_LEN + 1];         /* 受信バッファ */
   int n;                         /* 読み込み／受信バイト数 */
 
   struct in_addr addr; /* アドレス表示用 */
@@ -31,8 +32,7 @@ int main(int argc, char **argv) {
     server_ipaddr_str = argv[1];
   if (argc > 2) /* 宛先を指定のIPアドレス、portにする */
     port = (unsigned int)atoi(argv[2]);
-  if (argc > 3)
-    filename = argv[3];
+  if (argc > 3) filename = argv[3];
 
   FILE *file = fopen(filename, "w");
 
@@ -55,6 +55,17 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  struct sockaddr_in myAddr;
+  memset(&myAddr, 0, sizeof(myAddr));
+  myAddr.sin_family = AF_INET;
+  myAddr.sin_port = htons(10000);
+  myAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+  if (bind(sock, (struct sockaddr *)&myAddr, sizeof(myAddr)) < 0) {
+    perror("bind");
+    return 1;
+  }
+
   struct timespec start_time, end_time;
   clock_gettime(CLOCK_REALTIME, &start_time);
 
@@ -73,13 +84,14 @@ int main(int argc, char **argv) {
   struct sockaddr clientAddr;
   socklen_t addrLen = sizeof(struct sockaddr); /* serverAddrのサイズ */
   int endCounter = 0;
-  while ((n = recvfrom(sock, buf, BUF_LEN, 0,
+  while ((n = recvfrom(sock, buf, BUF_LEN - 1, 0,
                        (struct sockaddr *)&clientAddr, &addrLen)) > 0) {
     if (strncmp(buf, "END\n", BUF_LEN) == 0) {
-      printf("end sign ");
+      printf("end sign\n");
       endCounter++;
-      if (endCounter >= 10)
-        break;
+      if (endCounter >= 10) break;
+
+      continue;
     }
     fwrite(buf, sizeof(char), n, file);
     total += n;
