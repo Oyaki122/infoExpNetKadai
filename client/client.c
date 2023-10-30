@@ -84,8 +84,8 @@ int main(int argc, char **argv) {
   struct sockaddr clientAddr;
   socklen_t addrLen = sizeof(struct sockaddr); /* serverAddrのサイズ */
   int endCounter = 0;
-  while ((n = recvfrom(sock, buf, BUF_LEN, 0, (struct sockaddr *)&clientAddr,
-                       &addrLen)) > 0) {
+  while ((n = recvfrom(sock, buf, BUF_LEN, 0,
+                       (struct sockaddr *)&clientAddr, &addrLen)) > 0) {
     if (strncmp(buf, "END\n", BUF_LEN) == 0) {
       printf("end sign\n");
       endCounter++;
