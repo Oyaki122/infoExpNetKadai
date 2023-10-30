@@ -64,17 +64,12 @@ int main(int argc, char** argv)
 	printf("received from : ip address: %s, ", inet_ntoa(addr));
 	printf("port#: %d\n", ntohs(clientAddr.sin_port));
 
-	/* STEP 5xxx: 受信データをクライアントに送り返す */
-	if (sendto(sock, buf, n, 0, (struct sockaddr *)&clientAddr, addrLen) != n) {
-		perror("sendto");
-		return (1);
-	}
-
 	while ((n = read(fd, buf, BUF_LEN)) > 0) {
 		if (sendto(sock, buf, n, 0, (struct sockaddr *)&clientAddr, addrLen) != n) {
 			perror("sendto");
 			return (1);
 		}
+		usleep(100);
 	}
 
 	printf("Message transmitted to client\n");
