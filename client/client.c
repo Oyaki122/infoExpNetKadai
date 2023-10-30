@@ -58,27 +58,33 @@ int main(int argc, char **argv) {
   struct timespec start_time, end_time;
   clock_gettime(CLOCK_REALTIME, &start_time);
 
-  char nullData = 0;
-  if (sendto(sock, &nullData, sizeof(char), 0, (struct sockaddr *)&serverAddr,
-             sizeof(struct sockaddr)) != 1) {
+  char *nullData = "request";
+  if (sendto(sock, nullData, strlen(nullData), 0,
+             (struct sockaddr *)&serverAddr,
+             sizeof(struct sockaddr)) != strlen(nullData)) {
     perror("sending request");
     return -1;
   }
+
+  printf("sent request\n");
 
   uint32_t total = 0, recvCounter;
 
   struct sockaddr clientAddr;
   socklen_t addrLen = sizeof(struct sockaddr); /* serverAddrのサイズ */
   int endCounter = 0;
-  while ((n = recvfrom(sock, buf, BUF_LEN, 0, (struct sockaddr *)&clientAddr,
-                       &addrLen)) > 0) {
-    if (buf[0] == 0x04) {
+  while ((n = recvfrom(sock, buf, BUF_LEN - 1, 0,
+                       (struct sockaddr *)&clientAddr, &addrLen)) > 0) {
+    if (strncmp(buf, "end\n", BUF_LEN) == 0) {
+      printf("end sign ");
       endCounter++;
       if (endCounter >= 10)
         break;
     }
     fwrite(buf, sizeof(char), n, file);
     total += n;
+    buf[n] = 0;
+    printf("recv %d bytes : %s\n", n, buf);
   }
 
   if (sendto(sock, &nullData, sizeof(char), 0, (struct sockaddr *)&serverAddr,
