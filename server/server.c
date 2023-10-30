@@ -1,7 +1,7 @@
 #include "icslab2_net.h"
 #include <time.h>
 
-#define EOT 0x04
+#define ACK "END\n"
 #define ACK_LOOP 100
 
 int main(int argc, char** argv)
@@ -18,7 +18,6 @@ int main(int argc, char** argv)
 	int fd;
 	char *input_txt;
 
-	char eot = EOT;
 	int i = 0;
 
 	/* コマンドライン引数の処理 */
@@ -82,7 +81,7 @@ int main(int argc, char** argv)
 
 	/* ack to tell end of transmission */
 	for (i = 0; i < ACK_LOOP; i++) {
-		if (sendto(sock, &eot, 1, 0, (struct sockaddr *)&clientAddr, addrLen) != 1) {
+		if (sendto(sock, ACK, 4, 0, (struct sockaddr *)&clientAddr, addrLen) != 4) {
 			perror("sendto");
 			return (1);
 		}
