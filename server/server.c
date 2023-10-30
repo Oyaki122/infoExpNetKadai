@@ -4,15 +4,15 @@
 #define ACK "END\n"
 #define ACK_LOOP 100
 
-#define DST_SIZE 4
+#define DST_SIZE 5
 
 int main(int argc, char** argv)
 {
 	int     sock;                  /* ソケットディスクリプタ */
 	struct sockaddr_in  serverAddr; /* サーバ＝自分用アドレス構造体 */
 	struct sockaddr_in  clientAddr; /* クライアント＝相手用アドレス構造体 */
-	struct sockaddr_in  sendtoAddr[DST_SIZE];
-	char *sendAddr[] = {"172.21.0.30", "172.24.0.30", "172.27.0.30", "172.28.0.30"};
+	struct sockaddr_in  sendtoAddr[DST_SIZE + 1];
+	char *sendtoIpAddr[DST_SIZE + 1] = {"127.0.0.1", "172.21.0.10", "172.24.0.20", "127.0.0.1", "172.27.0.40", "172.28.0.50"};
 	int     addrLen;                /* clientAddrのサイズ */
 	char    buf[BUF_LEN];          /* 受信バッファ */
 	int     n;                      /* 受信バイト数 */
@@ -24,10 +24,11 @@ int main(int argc, char** argv)
 
 	int i;                          /* ループ用変数 */
 
-	for (i = 0; i < DST_SIZE; i++) {
-		sendtoAddr[i].sin_family = SOCK_DGRAM;
+	for (i = 0; i <= DST_SIZE; i++) {
+		memset(&sendtoAddr[i], 0, sizeof(sendtoAddr[i]));
+		sendtoAddr[i].sin_family = AF_INET;
 		sendtoAddr[i].sin_port = htons(UDP_SERVER_PORT);
-		inet_pton(AF_INET, sendAddr[i], &sendtoAddr[i].sin_addr.s_addr);
+		inet_pton(AF_INET, sendtoIpAddr[i], &sendtoAddr[i].sin_addr.s_addr);
 	}
 
 	/* コマンドライン引数の処理 */
@@ -78,10 +79,14 @@ int main(int argc, char** argv)
 		printf("port#: %d\n", ntohs(clientAddr.sin_port));
 
 		while ((n = read(fd, buf, BUF_LEN)) > 0) {
-			if (sendto(sock, buf, n, 0, (struct sockaddr *)&clientAddr, addrLen) != n) {
+			if (sendto(sock, buf, n, 0, (struct sockaddr *)&sendtoAddr[1], sizeof(sendtoAddr[1])) != n) {
 				perror("sendto");
 				return (1);
 			}
+			//if (sendto(sock, buf, n, 0, (struct sockaddr *)&clientAddr, addrLen) != n) {
+			//	perror("sendto");
+			//	return (1);
+			//}
 			usleep(10);
 		}
 
