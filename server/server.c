@@ -2,18 +2,19 @@
 
 #include "icslab2_net.h"
 
-#define CLIENT_IP "172.29.0.40"  // Fixed client IP address to send data
+#define CLIENT_IP "172.29.0.40" // Fixed client IP address to send data
 #define ACK "END\n"
 #define ACK_LOOP 100
 
 #define DST_SIZE 5
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
   int sock;                      /* ソケットディスクリプタ */
   struct sockaddr_in serverAddr; /* サーバ＝自分用アドレス構造体 */
   struct sockaddr_in clientAddr; /* クライアント＝相手用アドレス構造体 */
   struct sockaddr_in sendtoAddr[DST_SIZE + 1];
-  char *sendtoIpAddr[DST_SIZE + 1] = {"127.0.0.1",   "172.21.0.10",
+  char *sendtoIpAddr[DST_SIZE + 1] = {"127.0.0.1", "172.21.0.10",
                                       "172.24.0.20", "127.0.0.1",
                                       "172.27.0.40", "172.28.0.50"};
   int addrLen;       /* clientAddrのサイズ */
@@ -27,7 +28,8 @@ int main(int argc, char **argv) {
 
   int i; /* ループ用変数 */
 
-  for (i = 0; i <= DST_SIZE; i++) {
+  for (i = 0; i <= DST_SIZE; i++)
+  {
     memset(&sendtoAddr[i], 0, sizeof(sendtoAddr[i]));
     sendtoAddr[i].sin_family = AF_INET;
     sendtoAddr[i].sin_port = htons(UDP_SERVER_PORT);
@@ -35,7 +37,8 @@ int main(int argc, char **argv) {
   }
 
   /* コマンドライン引数の処理 */
-  if (argc != 2) {
+  if (argc != 2)
+  {
     printf("Usage: %s [input_txt]\n", argv[0]);
     return 1;
   }
@@ -45,7 +48,8 @@ int main(int argc, char **argv) {
   fd = open(input_txt, O_RDONLY);
 
   /* STEP 1: UDPソケットをオープンする */
-  if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+  if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+  {
     perror("socket");
     return 1;
   }
@@ -59,7 +63,8 @@ int main(int argc, char **argv) {
   serverAddr.sin_addr.s_addr = htonl(INADDR_ANY); /* どのIPアドレス宛でも */
 
   /* STEP 3:ソケットとアドレスをbindする */
-  if (bind(sock, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0) {
+  if (bind(sock, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0)
+  {
     perror("bind");
     return 1;
   }
@@ -71,22 +76,27 @@ int main(int argc, char **argv) {
   /* クライアントから情報を取得 */
   n = recvfrom(sock, buf, BUF_LEN, 0, (struct sockaddr *)&clientAddr,
                (socklen_t *)&addrLen);
-  if (n < 0) {
+  if (n < 0)
+  {
     perror("recvfrom");
     return (1);
   }
 
-	// Set the client address to the fixed IP address for sending data
-	inet_pton(AF_INET, CLIENT_IP, &clientAddr.sin_addr);
+  // Set the client address to the fixed IP address for sending data
+  inet_pton(AF_INET, CLIENT_IP, &clientAddr.sin_addr);
   /* （後回し） STEP 4'xxx. 受信パケットの送信元IPアドレスとポート番号を表示 */
   addr.s_addr = clientAddr.sin_addr.s_addr;
   printf("received from : ip address: %s, ", inet_ntoa(addr));
   printf("port#: %d\n", ntohs(clientAddr.sin_port));
 
-  while ((n = read(fd, buf, BUF_LEN)) > 0) {
+  while ((n = read(fd, buf, BUF_LEN)) > 0)
+  {
     /* 任意のノードに向けて情報を送信（sendtoAddrの配列の引数の値がnode番号に対応） */
-    if (sendto(sock, buf, n, 0, (struct sockaddr *)&sendtoAddr[1],
-              sizeof(sendtoAddr[1])) != n) {
+    // if (sendto(sock, buf, n, 0, (struct sockaddr *)&sendtoAddr[1],
+    // sizeof(sendtoAddr[1])) != n)
+    if (sendto(sock, buf, n, 0, (struct sockaddr *)&clientAddr,
+               addrLen) != n)
+    {
       perror("sendto");
       return (1);
     }
@@ -101,8 +111,10 @@ int main(int argc, char **argv) {
   printf("Message transmitted to client\n");
 
   /* 終了したというシグナルを送り元に対して返す */
-  for (i = 0; i < ACK_LOOP; i++) {
-    if (sendto(sock, ACK, 4, 0, (struct sockaddr *)&clientAddr, addrLen) != 4) {
+  for (i = 0; i < ACK_LOOP; i++)
+  {
+    if (sendto(sock, ACK, 4, 0, (struct sockaddr *)&clientAddr, addrLen) != 4)
+    {
       perror("sendto");
       return (1);
     }

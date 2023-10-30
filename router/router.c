@@ -63,7 +63,7 @@ int main(int argc, char **argv)
 
   while (1)
   {
-    n = recvfrom(client_udp_sock, buffer, BUF_SIZE, 0, (struct sockaddr *)&client_addr, &client_addr_len);
+    n = recvfrom(client_udp_sock, buffer, BUF_SIZE - 1, 0, (struct sockaddr *)&client_addr, &client_addr_len);
 
     if (n < 0)
     {
@@ -71,7 +71,8 @@ int main(int argc, char **argv)
       continue; // Keep waiting for the next client message
     }
     printf("Data received\n");
-
+    buffer[n] = '\0';
+    printf("Received data: %s\n", buffer);
     // sendto(server_udp_sock, buffer, n, 0, (struct sockaddr *)&server_addr, sizeof(server_addr));
 
     // n = recvfrom(server_udp_sock, buffer, BUF_SIZE, 0, NULL, NULL);
@@ -87,6 +88,7 @@ int main(int argc, char **argv)
       perror("sendto failed");
       continue;
     }
+    usleep(10);
 
     // sendto(client_udp_sock, buffer, n, 0, (struct sockaddr *)&forward_addr, sizeof(forward_addr));
     printf("Data forwarded\n");
@@ -97,6 +99,4 @@ int main(int argc, char **argv)
   close(server_udp_sock);
   return 0;
 }
-
-
 
