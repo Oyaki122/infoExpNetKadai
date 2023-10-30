@@ -81,11 +81,14 @@ int main(int argc, char **argv) {
   printf("port#: %d\n", ntohs(clientAddr.sin_port));
 
   while ((n = read(fd, buf, BUF_LEN)) > 0) {
+    /* 任意のノードに向けて情報を送信（sendtoAddrの配列の引数の値がnode番号に対応） */
     if (sendto(sock, buf, n, 0, (struct sockaddr *)&sendtoAddr[1],
-               sizeof(sendtoAddr[1])) != n) {
+              sizeof(sendtoAddr[1])) != n) {
       perror("sendto");
       return (1);
     }
+
+    /* 送り元に対してそのまま情報を返す */
     // if (sendto(sock, buf, n, 0, (struct sockaddr *)&clientAddr, addrLen) !=
     // n) { 	perror("sendto"); 	return (1);
     // }
@@ -94,7 +97,7 @@ int main(int argc, char **argv) {
 
   printf("Message transmitted to client\n");
 
-  /* ack to tell end of transmission */
+  /* 終了したというシグナルを送り元に対して返す */
   for (i = 0; i < ACK_LOOP; i++) {
     if (sendto(sock, ACK, 4, 0, (struct sockaddr *)&clientAddr, addrLen) != 4) {
       perror("sendto");
