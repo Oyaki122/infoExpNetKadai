@@ -69,7 +69,7 @@ int main(int argc, char** argv)
 			perror("sendto");
 			return (1);
 		}
-		usleep(100);
+		usleep(10);
 	}
 
 	printf("Message transmitted to client\n");
