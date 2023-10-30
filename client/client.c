@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
 
   int sock;                      /* ソケットディスクリプタ */
   struct sockaddr_in serverAddr; /* サーバ＝相手用のアドレス構造体 */
-  char buf[BUF_LEN];             /* 受信バッファ */
+  char buf[BUF_LEN + 1];             /* 受信バッファ */
   int n;                         /* 読み込み／受信バイト数 */
 
   struct in_addr addr; /* アドレス表示用 */
@@ -73,9 +73,9 @@ int main(int argc, char **argv) {
   struct sockaddr clientAddr;
   socklen_t addrLen = sizeof(struct sockaddr); /* serverAddrのサイズ */
   int endCounter = 0;
-  while ((n = recvfrom(sock, buf, BUF_LEN - 1, 0,
+  while ((n = recvfrom(sock, buf, BUF_LEN, 0,
                        (struct sockaddr *)&clientAddr, &addrLen)) > 0) {
-    if (strncmp(buf, "end\n", BUF_LEN) == 0) {
+    if (strncmp(buf, "END\n", BUF_LEN) == 0) {
       printf("end sign ");
       endCounter++;
       if (endCounter >= 10)
@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     fwrite(buf, sizeof(char), n, file);
     total += n;
     buf[n] = 0;
-    printf("recv %d bytes : %s\n", n, buf);
+    printf("recv %d bytes\n", n);
   }
 
   if (sendto(sock, &nullData, sizeof(char), 0, (struct sockaddr *)&serverAddr,
