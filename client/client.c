@@ -80,6 +80,8 @@ int main(int argc, char **argv) {
       endCounter++;
       if (endCounter >= 10)
         break;
+
+      continue;
     }
     fwrite(buf, sizeof(char), n, file);
     total += n;
