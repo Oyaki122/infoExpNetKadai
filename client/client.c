@@ -61,30 +61,30 @@ int main(int argc, char **argv) {
   char nullData = 0;
   if (sendto(sock, &nullData, sizeof(char), 0, (struct sockaddr *)&serverAddr,
              sizeof(struct sockaddr)) != 1) {
-    perror("request send");
+    perror("sending request");
     return -1;
   }
 
   uint32_t total = 0, recvCounter;
-  /* STEP 4xxx: サーバからデータグラムを受けとる */
-  while ((n = read(sock, buf, BUF_LEN - 1)) > 0) {
-    buf[n] = '\0';
-    printf("received %d bytes\n", n);
-    fwrite(buf, sizeof(char), n, file);
-    total += n;
-  }
 
   struct sockaddr clientAddr;
   socklen_t addrLen = sizeof(struct sockaddr); /* serverAddrのサイズ */
   int endCounter = 0;
   while ((n = recvfrom(sock, buf, BUF_LEN, 0, (struct sockaddr *)&clientAddr,
                        &addrLen)) > 0) {
-    if (strncmp(buf, "end\n", BUF_LEN)) {
+    if (buf[0] == 0x04) {
       endCounter++;
-      if(endCounter >= 10) break;
+      if (endCounter >= 10)
+        break;
     }
     fwrite(buf, sizeof(char), n, file);
     total += n;
+  }
+
+  if (sendto(sock, &nullData, sizeof(char), 0, (struct sockaddr *)&serverAddr,
+             sizeof(struct sockaddr)) == -1) {
+    perror("sending com end");
+    return -1;
   }
   clock_gettime(CLOCK_REALTIME, &end_time);
 
