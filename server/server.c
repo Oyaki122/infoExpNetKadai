@@ -4,11 +4,15 @@
 #define ACK "END\n"
 #define ACK_LOOP 100
 
+#define DST_SIZE 4
+
 int main(int argc, char** argv)
 {
 	int     sock;                  /* ソケットディスクリプタ */
 	struct sockaddr_in  serverAddr; /* サーバ＝自分用アドレス構造体 */
 	struct sockaddr_in  clientAddr; /* クライアント＝相手用アドレス構造体 */
+	struct sockaddr_in  sendtoAddr[DST_SIZE];
+	char *sendAddr[] = {"172.21.0.30", "172.24.0.30", "172.27.0.30", "172.28.0.30"};
 	int     addrLen;                /* clientAddrのサイズ */
 	char    buf[BUF_LEN];          /* 受信バッファ */
 	int     n;                      /* 受信バイト数 */
@@ -18,7 +22,13 @@ int main(int argc, char** argv)
 	int fd;
 	char *input_txt;
 
-	int i = 0;
+	int i;                          /* ループ用変数 */
+
+	for (i = 0; i < DST_SIZE; i++) {
+		sendtoAddr[i].sin_family = SOCK_DGRAM;
+		sendtoAddr[i].sin_port = htons(UDP_SERVER_PORT);
+		inet_pton(AF_INET, sendAddr[i], &sendtoAddr[i].sin_addr.s_addr);
+	}
 
 	/* コマンドライン引数の処理 */
 	if (argc != 2) {
@@ -52,38 +62,42 @@ int main(int argc, char** argv)
 
 	/* STEP 4: クライアントからのデータグラムを受けとる */
 	addrLen = sizeof(clientAddr);
-	n = recvfrom(sock, buf, BUF_LEN, 0,
-				(struct sockaddr *)&clientAddr, (socklen_t *)&addrLen);
-	if (n < 0) {
-		perror("recvfrom");
-		return (1);
-	}
 
-	/* （後回し） STEP 4'xxx. 受信パケットの送信元IPアドレスとポート番号を表示 */
-	addr.s_addr = clientAddr.sin_addr.s_addr;
-	printf("received from : ip address: %s, ", inet_ntoa(addr));
-	printf("port#: %d\n", ntohs(clientAddr.sin_port));
-
-	while ((n = read(fd, buf, BUF_LEN)) > 0) {
-		if (sendto(sock, buf, n, 0, (struct sockaddr *)&clientAddr, addrLen) != n) {
-			perror("sendto");
+	//for ( ; ; ) {
+		/* クライアントから情報を取得 */
+		n = recvfrom(sock, buf, BUF_LEN, 0,
+					(struct sockaddr *)&clientAddr, (socklen_t *)&addrLen);
+		if (n < 0) {
+			perror("recvfrom");
 			return (1);
 		}
-		usleep(10);
-	}
 
-	printf("Message transmitted to client\n");
+		/* （後回し） STEP 4'xxx. 受信パケットの送信元IPアドレスとポート番号を表示 */
+		addr.s_addr = clientAddr.sin_addr.s_addr;
+		printf("received from : ip address: %s, ", inet_ntoa(addr));
+		printf("port#: %d\n", ntohs(clientAddr.sin_port));
 
-	/* ack to tell end of transmission */
-	for (i = 0; i < ACK_LOOP; i++) {
-		if (sendto(sock, ACK, 4, 0, (struct sockaddr *)&clientAddr, addrLen) != 4) {
-			perror("sendto");
-			return (1);
+		while ((n = read(fd, buf, BUF_LEN)) > 0) {
+			if (sendto(sock, buf, n, 0, (struct sockaddr *)&clientAddr, addrLen) != n) {
+				perror("sendto");
+				return (1);
+			}
+			usleep(10);
 		}
-		usleep(1000);
-	}
 
-	printf("EOT transmitted to client\n");
+		printf("Message transmitted to client\n");
+
+		/* ack to tell end of transmission */
+		for (i = 0; i < ACK_LOOP; i++) {
+			if (sendto(sock, ACK, 4, 0, (struct sockaddr *)&clientAddr, addrLen) != 4) {
+				perror("sendto");
+				return (1);
+			}
+			usleep(1000);
+		}
+
+		printf("EOT transmitted to client\n");
+	//}
 
 	close(sock);                               /* ソケットのクローズ */
 	close(fd);                                 /* ファイルの終了 */
