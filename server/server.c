@@ -1,3 +1,6 @@
+#include <netdb.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <time.h>
 
 #include "icslab2_net.h"
@@ -12,10 +15,10 @@ int main(int argc, char **argv) {
   int sock;                      /* ソケットディスクリプタ */
   struct sockaddr_in serverAddr; /* サーバ＝自分用アドレス構造体 */
   struct sockaddr_in clientAddr; /* クライアント＝相手用アドレス構造体 */
-  struct sockaddr_in sendtoAddr[DST_SIZE + 1];
-  char *sendtoIpAddr[DST_SIZE + 1] = {"127.0.0.1",   "172.21.0.10",
-                                      "172.24.0.20", "127.0.0.1",
-                                      "172.27.0.40", "172.28.0.50"};
+                                 // struct sockaddr_in sendtoAddr[DST_SIZE + 1];
+  struct addrinfo *sendtoAddr[DST_SIZE];
+  char *sendtoURL[DST_SIZE + 1] = {"node1", "node2", "node3", "node4", "node5"};
+
   int addrLen;       /* clientAddrのサイズ */
   char buf[BUF_LEN]; /* 受信バッファ */
   int n;             /* 受信バイト数 */
@@ -28,10 +31,13 @@ int main(int argc, char **argv) {
   int i; /* ループ用変数 */
 
   for (i = 0; i <= DST_SIZE; i++) {
-    memset(&sendtoAddr[i], 0, sizeof(sendtoAddr[i]));
-    sendtoAddr[i].sin_family = AF_INET;
-    sendtoAddr[i].sin_port = htons(UDP_SERVER_PORT);
-    inet_pton(AF_INET, sendtoIpAddr[i], &sendtoAddr[i].sin_addr.s_addr);
+    struct addrinfo hints, *info;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    getaddrinfo(sendtoURL[i], NULL, &hints, &info);
+    ((struct sockaddr_in *)info->ai_addr)->sin_port = htons(UDP_SERVER_PORT);
+    sendtoAddr[i] = info;
   }
 
   /* コマンドライン引数の処理 */
@@ -89,7 +95,17 @@ int main(int argc, char **argv) {
      */
     // if (sendto(sock, buf, n, 0, (struct sockaddr *)&sendtoAddr[1],
     // sizeof(sendtoAddr[1])) != n)
-    if (sendto(sock, buf, n, 0, (struct sockaddr *)&clientAddr, addrLen) != n) {
+    // if (sendto(sock, buf, n, 0, (struct sockaddr *)&clientAddr, addrLen) !=
+    // n) {
+    int dest = 5;
+    char ipBuf[100];
+    inet_ntop(
+        (sendtoAddr[dest - 1])->ai_family,
+        &((struct sockaddr_in *)(sendtoAddr[dest - 1])->ai_addr)->sin_addr,
+        ipBuf, 100);
+    printf("host: %s = ip address: %s\n", sendtoURL[dest - 1], ipBuf);
+    if (sendto(sock, buf, n, 0, (sendtoAddr[dest - 1])->ai_addr,
+               sizeof(struct sockaddr)) != n) {
       perror("sendto");
       return (1);
     }

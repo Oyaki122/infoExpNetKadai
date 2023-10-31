@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "icslab2_net.h": "c",
+    "netdb.h": "c"
+  }
+}
