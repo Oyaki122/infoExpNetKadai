@@ -5,6 +5,8 @@
 
 #include "icslab2_net.h"
 
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
 #define CLIENT_IP "172.29.0.50"  // Fixed client IP address to send data
 #define ACK "END\n"
 #define ACK_LOOP 100
@@ -30,6 +32,10 @@ int main(int argc, char **argv) {
 
   int i; /* ループ用変数 */
 
+  int destNode[DST_SIZE] = {5};  // 送信先ノード
+  double ratio[DST_SIZE] = {1};  // 送信先ノードへの割合
+  int sentDestCounter[DST_SIZE] = {0};  // 送信先ノードへの送信パケット数
+
   for (i = 0; i <= DST_SIZE; i++) {
     struct addrinfo hints, *info;
     memset(&hints, 0, sizeof(hints));
@@ -41,9 +47,20 @@ int main(int argc, char **argv) {
   }
 
   /* コマンドライン引数の処理 */
-  if (argc != 2) {
-    printf("Usage: %s [input_txt]\n", argv[0]);
+  if (argc % 2 != 0) {
+    printf(
+        "Usage: %s [input_txt] [node_id1] [ratio1] [node_id2] [ratio2] ...\n",
+        argv[0]);
     return 1;
+  }
+
+  int destInputNum = MIN((argc - 2) / 2, DST_SIZE);
+  double ratioSum = 0;
+  for (int i = 0; i < destInputNum; i++) {
+    destNode[i] = atoi(argv[2 * i + 2]);
+    ratio[i] = atof(argv[2 * i + 3]) + ratioSum;
+    ratioSum = ratio[i];
+    printf("destNode: %d, ratio: %f\n", destNode[i], ratio[i]);
   }
 
   /* 転送ファイルの取得 */
@@ -85,7 +102,6 @@ int main(int argc, char **argv) {
   // Set the client address to the fixed IP address for sending data
   inet_pton(AF_INET, CLIENT_IP, &clientAddr.sin_addr);
   /* （後回し） STEP 4'xxx. 受信パケットの送信元IPアドレスとポート番号を表示 */
-  addr.s_addr = clientAddr.sin_addr.s_addr;
   printf("received from : ip address: %s, ", inet_ntoa(addr));
   printf("port#: %d\n", ntohs(clientAddr.sin_port));
 
@@ -97,13 +113,15 @@ int main(int argc, char **argv) {
     // sizeof(sendtoAddr[1])) != n)
     // if (sendto(sock, buf, n, 0, (struct sockaddr *)&clientAddr, addrLen) !=
     // n) {
-    int dest = 5;
-    char ipBuf[100];
-    inet_ntop(
-        (sendtoAddr[dest - 1])->ai_family,
-        &((struct sockaddr_in *)(sendtoAddr[dest - 1])->ai_addr)->sin_addr,
-        ipBuf, 100);
-    printf("host: %s = ip address: %s\n", sendtoURL[dest - 1], ipBuf);
+    double randomDest = (double)rand() / (RAND_MAX + 1.0) * ratioSum;
+    int dest;
+    for (int i = 0; i < destInputNum; i++) {
+      if (randomDest < ratio[i]) {
+        dest = destNode[i];
+        sentDestCounter[i]++;
+        break;
+      }
+    }
     if (sendto(sock, buf, n, 0, (sendtoAddr[dest - 1])->ai_addr,
                sizeof(struct sockaddr)) != n) {
       perror("sendto");
@@ -130,6 +148,10 @@ int main(int argc, char **argv) {
 
   printf("EOT transmitted to client\n");
   //}
+  //
+  for (int i = 0; i < destInputNum; i++) {
+    printf("destNode: %d, sentPacket: %d\n", destNode[i], sentDestCounter[i]);
+  }
 
   close(sock); /* ソケットのクローズ */
   close(fd);   /* ファイルの終了 */
