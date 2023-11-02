@@ -3,104 +3,111 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-
-#include "../icslab2_net.h"
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
 
 #define BUF_SIZE 1000
-#define SERVER_IP "172.29.0.40"
-#define CLIENT_IP "172.23.0.10"
+#define DST_SIZE 5
 
-// #define SERVER_IP "127.0.0.1"       // Default server IP address
-#define SERVER_PORT UDP_SERVER_PORT  // Default server port
-#define ROUTER_PORT 10000  // Default router port for client to connect
-#define FORWARD_PORT 10000
-int main(int argc, char **argv) {
-  int client_udp_sock, server_udp_sock;
-  struct sockaddr_in router_addr, client_addr, server_addr;
+char *sendtoURL[DST_SIZE] = {"node1", "node2", "node3", "node4", "node5"};
+struct addrinfo *sendtoAddr[DST_SIZE];
+
+#define ROUTER_PORT 10000
+int getNodeNumber(const char *nodeStr)
+{
+  return atoi(nodeStr + 4);
+}
+int main(int argc, char **argv)
+{
+  int udp_sock;
+  struct sockaddr_in router_addr, client_addr;
   socklen_t client_addr_len = sizeof(client_addr);
   char buffer[BUF_SIZE + 1];
   int n;
 
-  // UDPクライアント定義
-  client_udp_sock = socket(AF_INET, SOCK_DGRAM, 0);
-  if (client_udp_sock < 0) {
-    perror("Client UDP socket creation failed");
+  int destNode[DST_SIZE] = {5};
+  double ratio[DST_SIZE] = {1};
+  double ratioSum = 0;
+
+  if ((argc - 1) % 2 != 0)
+  {
+    printf("Usage: %s [node_id1] [ratio1] [node_id2] [ratio2] ...\n", argv[0]);
+    return 1;
+  }
+
+  int destInputNum = (argc - 1) / 2;
+  for (int i = 0; i < destInputNum; i++)
+  {
+    destNode[i] = getNodeNumber(argv[2 * i + 1]);
+    ratio[i] = atof(argv[2 * i + 2]) + ratioSum;
+    ratioSum = ratio[i];
+    printf("destNode: %d, ratio: %f\n", destNode[i], ratio[i]);
+  }
+
+  for (int i = 0; i < DST_SIZE; i++)
+  {
+    struct addrinfo hints, *info;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    getaddrinfo(sendtoURL[i], NULL, &hints, &info);
+    info->ai_socktype = SOCK_DGRAM;
+    info->ai_protocol = 0;
+    ((struct sockaddr_in *)info->ai_addr)->sin_port = htons(ROUTER_PORT);
+    sendtoAddr[i] = info;
+  }
+
+  udp_sock = socket(AF_INET, SOCK_DGRAM, 0);
+  if (udp_sock < 0)
+  {
+    perror("UDP socket creation failed");
     exit(1);
   }
 
-  // Bind
   memset(&router_addr, 0, sizeof(router_addr));
   router_addr.sin_family = AF_INET;
   router_addr.sin_port = htons(ROUTER_PORT);
   router_addr.sin_addr.s_addr = INADDR_ANY;
-  if (bind(client_udp_sock, (struct sockaddr *)&router_addr,
-           sizeof(router_addr)) < 0) {
-    perror("UDP bind for client failed");
+
+  if (bind(udp_sock, (struct sockaddr *)&router_addr, sizeof(router_addr)) < 0)
+  {
+    perror("UDP bind for router failed");
     exit(1);
   }
 
-  server_udp_sock = socket(AF_INET, SOCK_DGRAM, 0);
-  if (server_udp_sock < 0) {
-    perror("Server UDP socket creation failed");
-    exit(1);
-  }
+  printf("Router waiting on port %d for data...\n", ROUTER_PORT);
 
-  // サーバーセットアップ
-  memset(&server_addr, 0, sizeof(server_addr));
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_port = htons(SERVER_PORT);
-  inet_pton(AF_INET, SERVER_IP, &server_addr.sin_addr);
+  while (1)
+  {
+    n = recvfrom(udp_sock, buffer, BUF_SIZE, 0, (struct sockaddr *)&client_addr, &client_addr_len);
 
-  struct sockaddr_in forward_addr;
-  memset(&forward_addr, 0, sizeof(forward_addr));
-  forward_addr.sin_family = AF_INET;
-  forward_addr.sin_port = htons(FORWARD_PORT);
-  inet_pton(AF_INET, CLIENT_IP, &forward_addr.sin_addr);
-
-  printf("Router waiting on port %d for client data...\n", ROUTER_PORT);
-
-  int packetCounter = 0;
-
-  while (1) {
-    n = recvfrom(client_udp_sock, buffer, BUF_SIZE, 0,
-                 (struct sockaddr *)&client_addr, &client_addr_len);
-
-    if (n < 0) {
-      perror("UDP receive from client failed");
-      continue;  // Keep waiting for the next client message
+    if (n < 0)
+    {
+      perror("UDP receive failed");
+      continue;
     }
-    printf("Data received\n");
-    buffer[n] = '\0';
-    printf("Received data: %s\n", buffer);
-    // sendto(server_udp_sock, buffer, n, 0, (struct sockaddr *)&server_addr,
-    // sizeof(server_addr));
 
-    // n = recvfrom(server_udp_sock, buffer, BUF_SIZE, 0, NULL, NULL);
-    // Forward the response to the specified IP and port
-    printf("Forward address: IP = %s, PORT = %d\n",
-           inet_ntoa(server_addr.sin_addr), ntohs(server_addr.sin_port));
-    printf("Forward address: IP = %s, PORT = %d\n",
-           inet_ntoa(forward_addr.sin_addr), ntohs(forward_addr.sin_port));
+    double randomDest = (double)rand() / (RAND_MAX + 1.0) * ratioSum;
+    int dest;
+    for (int i = 0; i < destInputNum; i++)
+    {
+      if (randomDest < ratio[i])
+      {
+        dest = destNode[i] - 1;
+        break;
+      }
+    }
 
-    int result = sendto(client_udp_sock, buffer, n, 0,
-                        (struct sockaddr *)&forward_addr, sizeof(forward_addr));
-    if (result < 0) {
+    int result = sendto(udp_sock, buffer, n, 0, sendtoAddr[dest]->ai_addr, sendtoAddr[dest]->ai_addrlen);
+    if (result < 0)
+    {
       perror("sendto failed");
       continue;
     }
-    packetCounter++;
-    // usleep(10);
-    if (strncmp(buffer, "END\n", BUF_LEN) == 0) {
-      printf("end sign. Prev packet: %d\n", packetCounter);
-      packetCounter = 0;
-    }
-    // sendto(client_udp_sock, buffer, n, 0, (struct sockaddr *)&forward_addr,
-    // sizeof(forward_addr));
-    printf("Data forwarded\n");
+    printf("Data forwarded to: %s\n", sendtoURL[dest]);
   }
 
-  // Close sockets outside the loop
-  close(client_udp_sock);
-  close(server_udp_sock);
+  close(udp_sock);
   return 0;
 }

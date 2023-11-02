@@ -6,3 +6,4 @@ client/client
 router/router
 server/server
 *.dat
+.vscode/*
