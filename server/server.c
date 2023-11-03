@@ -113,15 +113,9 @@ int main(int argc, char **argv)
   printf("received from : ip address: %s, ", inet_ntoa(addr));
   printf("port#: %d\n", ntohs(clientAddr.sin_port));
 
-  int sentPacket = 0;
+  int sentPacket = 0, sentByte = 0;
   while ((n = read(fd, buf, BUF_LEN)) > 0)
   {
-    /* 任意のノードに向けて情報を送信（sendtoAddrの配列の引数の値がnode番号に対応）
-     */
-    // if (sendto(sock, buf, n, 0, (struct sockaddr *)&sendtoAddr[1],
-    // sizeof(sendtoAddr[1])) != n)
-    // if (sendto(sock, buf, n, 0, (struct sockaddr *)&clientAddr, addrLen) !=
-    // n) {
     double randomDest = (double)rand() / (RAND_MAX + 1.0) * ratioSum;
     int dest;
     for (int i = 0; i < destInputNum; i++)
@@ -140,14 +134,12 @@ int main(int argc, char **argv)
       return (1);
     }
     sentPacket++;
-    /* 送り元に対してそのまま情報を返す */
-    // if (sendto(sock, buf, n, 0, (struct sockaddr *)&clientAddr, addrLen) !=
-    // n) { 	perror("sendto"); 	return (1);
-    // }
+    sentByte += n;
     usleep(10);
   }
 
-  printf("Message transmitted to client. Packet num: %d\n", sentPacket);
+  printf("Message transmitted to client. Packet num: %d, %dByte\n", sentPacket,
+         sentByte);
 
   // /* 終了したというシグナルを送り元に対して返す */
   // for (i = 0; i < ACK_LOOP; i++)
