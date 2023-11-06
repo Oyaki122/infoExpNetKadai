@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
     }
     sentPacket++;
     sentByte += n;
-    usleep(10);
+    usleep(20);
   }
 
   printf("Message transmitted to client. Packet num: %d, %dByte\n", sentPacket,
@@ -143,6 +143,7 @@ int main(int argc, char **argv) {
   //   usleep(1000);
   // }
   // データ送信後の処理でACK送信のループ
+  usleep(60000);
   for (int i = 0; i < ACK_COUNT; i++) {
     double randomDest = (double)rand() / (RAND_MAX + 1.0) * ratioSum;
     int destIndex = -1;
@@ -165,7 +166,7 @@ int main(int argc, char **argv) {
     } else {
       printf("Error: No valid destination for ACK\n");
     }
-    usleep(10);
+    usleep(100);
   }
 
   printf("EOT transmitted to client\n");

@@ -13,7 +13,7 @@
 int main(int argc, char **argv) {
   char *server_ipaddr_str = "127.0.0.1"; /* サーバIPアドレス（文字列） */
   unsigned int port = UDP_SERVER_PORT; /* ポート番号 */
-  char *filename = "test.txt";
+  char *filename = "test.dat";
 
   int sock;                      /* ソケットディスクリプタ */
   struct sockaddr_in serverAddr; /* サーバ＝相手用のアドレス構造体 */
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
 
   printf("sent request\n");
 
-  uint32_t total = 0, recvCounter = 0;
+  uint64_t total = 0, recvCounter = 0;
 
   struct sockaddr clientAddr;
   socklen_t addrLen = sizeof(struct sockaddr); /* serverAddrのサイズ */
@@ -93,15 +93,22 @@ int main(int argc, char **argv) {
 
       continue;
     } else {
+      // if(recvCounter > 104000){
+      //   break;
+      // }
       if (endCounter > 0) {
         endCounter = 0;
         printf("end sign reset\n");
       }
-      // buf[n] = 0;
+      buf[n] = 0;
       fwrite(buf, sizeof(char), n, file);
       // printf("recv %d bytes: %s\n", n, buf);
       total += n;
       recvCounter++;
+      if(total % (long)1e6 == 0) {
+        printf("recv %ld bytes\n", total);
+      }
+      // if(recvCounter > 1050) break;
       // printf("recv %d bytes\n", n);
     }
   }
@@ -116,11 +123,11 @@ int main(int argc, char **argv) {
   double elapsed_time_ms = (end_time.tv_sec - start_time.tv_sec) * 1e3 +
                            (end_time.tv_nsec - start_time.tv_nsec) / 1e6;
 
-  printf("total: %d bytes\n", total);
+  printf("total: %ld bytes\n", total);
   printf("elapsed time: %6.5lf ms\n", elapsed_time_ms);
   printf("throughput: %6.1lf kbps\n",
-         total * 8 / elapsed_time_ms * 1000 / 1000);
-  printf("received %d packets\n", recvCounter);
+         total * 8 / elapsed_time_ms);
+  printf("received %ld packets\n", recvCounter);
 
   /* STEP 6: ソケットのクローズ */
   close(sock);

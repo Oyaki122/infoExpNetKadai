@@ -78,10 +78,19 @@ int main(int argc, char **argv)
 
   printf("Router waiting on port %d for data...\n", ROUTER_PORT);
 
+  uint64_t rcvCounter = 0;
+
   while (1)
   {
     n = recvfrom(udp_sock, buffer, BUF_SIZE, 0, (struct sockaddr *)&client_addr, &client_addr_len);
 
+    if(strncmp(buffer, "END\n", n) == 0){
+      printf("rcvCounter: %ld\n", rcvCounter);
+      rcvCounter = 0;
+    }
+
+    rcvCounter++;
+    
     if (n < 0)
     {
       perror("UDP receive failed");
