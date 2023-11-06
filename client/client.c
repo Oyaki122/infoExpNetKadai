@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
   printf("total: %ld bytes\n", total);
   printf("elapsed time: %6.5lf ms\n", elapsed_time_ms);
   printf("throughput: %6.1lf kbps\n",
-         total * 8 / elapsed_time_ms);
+         total * 8 / elapsed_time_ms * 1000 / 1000);
   printf("received %ld packets\n", recvCounter);
 
   /* STEP 6: ソケットのクローズ */
