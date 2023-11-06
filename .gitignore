@@ -1,3 +1,9 @@
 build
 *.o
 test.txt
+*.out
+client/client
+router/router
+server/server
+*.dat
+.vscode/*

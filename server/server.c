@@ -9,9 +9,10 @@
 
 #define CLIENT_IP "172.29.0.50"  // Fixed client IP address to send data
 #define ACK "END\n"
-#define ACK_LOOP 100
+#define ACK_LOOP 500
 
 #define DST_SIZE 5
+#define ACK_COUNT 50
 
 int main(int argc, char **argv) {
   int sock;                      /* ソケットディスクリプタ */
@@ -129,13 +130,42 @@ int main(int argc, char **argv) {
   printf("Message transmitted to client. Packet num: %d, %dByte\n", sentPacket,
          sentByte);
 
-  /* 終了したというシグナルを送り元に対して返す */
-  for (i = 0; i < ACK_LOOP; i++) {
-    if (sendto(sock, ACK, 4, 0, (struct sockaddr *)&clientAddr, addrLen) != 4) {
-      perror("sendto");
-      return (1);
+  // /* 終了したというシグナルを送り元に対して返す */
+  // for (i = 0; i < ACK_LOOP; i++)
+  // {
+  //   // if (sendto(sock, ACK, 4, 0, (struct sockaddr *)&clientAddr, addrLen)
+  //   != 4) if (sendto(sock, ACK, n, 0, (sendtoAddr[dest - 1])->ai_addr,
+  //              sizeof(struct sockaddr)) != 4)
+  //   {
+  //     perror("sendto");
+  //     return (1);
+  //   }
+  //   usleep(1000);
+  // }
+  // データ送信後の処理でACK送信のループ
+  for (int i = 0; i < ACK_COUNT; i++) {
+    double randomDest = (double)rand() / (RAND_MAX + 1.0) * ratioSum;
+    int destIndex = -1;
+    for (int j = 0; j < destInputNum; j++) {
+      if (randomDest < ratio[j]) {
+        destIndex = j;
+        break;
+      }
     }
-    usleep(1000);
+    if (destIndex >= 0 && destIndex < destInputNum) {
+      struct sockaddr_in *dest_sockaddr =
+          (struct sockaddr_in *)(sendtoAddr[destNode[destIndex] - 1]->ai_addr);
+      char *dest_ip = inet_ntoa(dest_sockaddr->sin_addr);
+      printf("Send ACK to Node %d at IP: %s\n", destNode[destIndex], dest_ip);
+
+      if (sendto(sock, ACK, strlen(ACK), 0, (struct sockaddr *)dest_sockaddr,
+                 sizeof(struct sockaddr)) != strlen(ACK)) {
+        perror("sendto");
+      }
+    } else {
+      printf("Error: No valid destination for ACK\n");
+    }
+    usleep(10);
   }
 
   printf("EOT transmitted to client\n");

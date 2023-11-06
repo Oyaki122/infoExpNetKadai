@@ -86,18 +86,24 @@ int main(int argc, char **argv) {
   int endCounter = 0;
   while ((n = recvfrom(sock, buf, BUF_LEN, 0, (struct sockaddr *)&clientAddr,
                        &addrLen)) > 0) {
-    if (strncmp(buf, "END\n", BUF_LEN) == 0) {
+    if (strncmp(buf, "END\n", BUF_LEN) == 0 || n == 4) {
       printf("end sign\n");
       endCounter++;
-      if (endCounter >= 10) break;
+      if (endCounter >= 5) break;
 
       continue;
+    } else {
+      if (endCounter > 0) {
+        endCounter = 0;
+        printf("end sign reset\n");
+      }
+      // buf[n] = 0;
+      fwrite(buf, sizeof(char), n, file);
+      // printf("recv %d bytes: %s\n", n, buf);
+      total += n;
+      recvCounter++;
+      // printf("recv %d bytes\n", n);
     }
-    fwrite(buf, sizeof(char), n, file);
-    total += n;
-    buf[n] = 0;
-    recvCounter++;
-    printf("recv %d bytes\n", n);
   }
 
   if (sendto(sock, &nullData, sizeof(char), 0, (struct sockaddr *)&serverAddr,
