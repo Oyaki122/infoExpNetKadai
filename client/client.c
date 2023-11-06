@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
 
   printf("sent request\n");
 
-  uint32_t total = 0, recvCounter = 0;
+  uint64_t total = 0, recvCounter = 0;
 
   struct sockaddr clientAddr;
   socklen_t addrLen = sizeof(struct sockaddr); /* serverAddrのサイズ */
@@ -116,11 +116,11 @@ int main(int argc, char **argv) {
   double elapsed_time_ms = (end_time.tv_sec - start_time.tv_sec) * 1e3 +
                            (end_time.tv_nsec - start_time.tv_nsec) / 1e6;
 
-  printf("total: %d bytes\n", total);
+  printf("total: %ld bytes\n", total);
   printf("elapsed time: %6.5lf ms\n", elapsed_time_ms);
   printf("throughput: %6.1lf kbps\n",
          total * 8 / elapsed_time_ms * 1000 / 1000);
-  printf("received %d packets\n", recvCounter);
+  printf("received %ld packets\n", recvCounter);
 
   /* STEP 6: ソケットのクローズ */
   close(sock);

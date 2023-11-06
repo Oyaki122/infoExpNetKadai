@@ -9,9 +9,9 @@ DAT_NAME = test.dat
 
 EXEC_DIR = ./exec
 
-service: server client router
+#service: server client router
 
-all: server client router $(DAT_NAME)
+all: server client router $(EXEC_DIR)/$(DAT_NAME)
 
 server:
 	$(CC) $(SERVER) -o $(EXEC_DIR)/$(SERVER_NAME)
@@ -22,8 +22,10 @@ client:
 router:
 	$(CC) $(ROUTER) -o $(EXEC_DIR)/$(ROUTER_NAME)
 
-$(DAT_NAME):
-	head -c 2000m /dev/urandom > $(EXEC_DIR)/$(DAT_NAME)
+$(EXEC_DIR)/$(DAT_NAME):
+ifeq ("$(wildcard $@)", "")
+	head -c 100m /dev/urandom > $@
+endif
 
 clean:
 	$(RM) $(EXEC_DIR)/*
